@@ -1,0 +1,18 @@
+# Godot-specific ignores
+.godot/
+.mono/
+export_presets.cfg
+export_templates/
+
+# Ignore import files
+*.import
+
+# Ignore generated files
+icon.svg.import
+.DS_Store
+
+# Ignore build output
+build/
+.gradle/
+*.apk
+*.aab
