@@ -1,6 +1,6 @@
 extends Area2D
 
-@export var item_id: StringName = &"block"
+@export var item_id: StringName = &"dirt"
 @export var amount: int = 1
 
 func _ready() -> void:

@@ -88,11 +88,13 @@ func _build_level() -> void:
 func _break_block_from_screen_position(screen_position: Vector2) -> void:
 	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
 	var cell := local_to_map(to_local(world_position))
-	if get_cell_source_id(0, cell) == -1:
+	var source_id := get_cell_source_id(0, cell)
+	if source_id == -1:
 		return
+	var atlas_coords := get_cell_atlas_coords(0, cell)
 
 	erase_cell(0, cell)
-	_spawn_dropped_item(cell)
+	_spawn_dropped_item(cell, _item_id_from_atlas_coords(atlas_coords))
 
 func _place_block_from_screen_position(screen_position: Vector2) -> void:
 	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
@@ -102,11 +104,24 @@ func _place_block_from_screen_position(screen_position: Vector2) -> void:
 	if _would_overlap_player(cell):
 		return
 
-	set_cell(0, cell, SOURCE_ID, TILE_DIRT)
+	if _player == null or not _player.has_method("get_selected_item_id") or not _player.has_method("consume_selected_item"):
+		return
 
-func _spawn_dropped_item(cell: Vector2i) -> void:
+	var selected_item_id: StringName = _player.get_selected_item_id()
+	var atlas_coords := _atlas_coords_from_item_id(selected_item_id)
+	if atlas_coords.x < 0:
+		return
+	if not _player.consume_selected_item(1):
+		return
+
+	set_cell(0, cell, SOURCE_ID, atlas_coords)
+
+func _spawn_dropped_item(cell: Vector2i, item_id: StringName) -> void:
+	if item_id == &"":
+		return
 	var dropped_item := DROPPED_ITEM_SCENE.instantiate()
 	dropped_item.global_position = to_global(map_to_local(cell))
+	dropped_item.item_id = item_id
 	get_parent().add_child(dropped_item)
 
 func _would_overlap_player(cell: Vector2i) -> bool:
@@ -124,3 +139,21 @@ func _would_overlap_player(cell: Vector2i) -> bool:
 		rectangle_shape.size
 	)
 	return cell_rect.intersects(player_rect)
+
+func _item_id_from_atlas_coords(atlas_coords: Vector2i) -> StringName:
+	if atlas_coords == TILE_GRASS:
+		return &"grass"
+	if atlas_coords == TILE_DIRT:
+		return &"dirt"
+	if atlas_coords == TILE_STONE:
+		return &"stone"
+	return &""
+
+func _atlas_coords_from_item_id(item_id: StringName) -> Vector2i:
+	if item_id == &"grass":
+		return TILE_GRASS
+	if item_id == &"dirt":
+		return TILE_DIRT
+	if item_id == &"stone":
+		return TILE_STONE
+	return Vector2i(-1, -1)
