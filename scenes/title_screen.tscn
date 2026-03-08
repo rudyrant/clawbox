@@ -29,43 +29,48 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="MenuPanel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
+size_flags_horizontal = 4
 
 [node name="Margin" type="MarginContainer" parent="Center/MenuPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 28
 
 [node name="VBox" type="VBoxContainer" parent="Center/MenuPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="Center/MenuPanel/Margin/VBox"]
 layout_mode = 2
 text = "CLAWBOX"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 44
 
 [node name="Subtitle" type="Label" parent="Center/MenuPanel/Margin/VBox"]
 layout_mode = 2
-text = "Placeholder Main Menu"
+text = "Placeholder Main Menu\nTap Start Game to begin."
 horizontal_alignment = 1
 autowrap_mode = 2
+theme_override_font_sizes/font_size = 18
 
 [node name="Spacer" type="Control" parent="Center/MenuPanel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 6)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="StartButton" type="Button" parent="Center/MenuPanel/Margin/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Start Game"
 
 [node name="QuitButton" type="Button" parent="Center/MenuPanel/Margin/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Quit"
