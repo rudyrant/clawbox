@@ -11,12 +11,19 @@ const SOURCE_ID := 0
 const TILE_GRASS := Vector2i(0, 0)
 const TILE_DIRT := Vector2i(1, 0)
 const TILE_STONE := Vector2i(2, 0)
+const DROPPED_ITEM_SCENE := preload("res://items/dropped_item.tscn")
 
 func _ready() -> void:
 	if tile_set == null:
 		tile_set = _build_tileset()
 
 	_build_level()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_break_block_from_screen_position(event.position)
+	elif event is InputEventScreenTouch and event.pressed:
+		_break_block_from_screen_position(event.position)
 
 func _build_tileset() -> TileSet:
 	var generated_tileset := TileSet.new()
@@ -72,3 +79,17 @@ func _build_level() -> void:
 				atlas_coords = TILE_DIRT
 
 			set_cell(0, Vector2i(x, y), SOURCE_ID, atlas_coords)
+
+func _break_block_from_screen_position(screen_position: Vector2) -> void:
+	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
+	var cell := local_to_map(to_local(world_position))
+	if get_cell_source_id(0, cell) == -1:
+		return
+
+	erase_cell(0, cell)
+	_spawn_dropped_item(cell)
+
+func _spawn_dropped_item(cell: Vector2i) -> void:
+	var dropped_item := DROPPED_ITEM_SCENE.instantiate()
+	dropped_item.global_position = to_global(map_to_local(cell))
+	get_parent().add_child(dropped_item)
