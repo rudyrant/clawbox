@@ -14,3 +14,7 @@ color = Color(0.25, 0.72, 0.95, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_player")
+
+[node name="MainCamera" type="Camera2D" parent="."]
+position = Vector2(0, -24)
+enabled = true

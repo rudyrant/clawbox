@@ -1,8 +1,16 @@
 extends TileMap
 
 const TILE_SIZE := Vector2i(16, 16)
-const GROUND_Y := 12
-const LEVEL_WIDTH := 64
+const WORLD_WIDTH := 96
+const WORLD_HEIGHT := 40
+const BASE_SURFACE_Y := 12
+const SURFACE_VARIATION := 3
+const DIRT_DEPTH := 3
+
+const SOURCE_ID := 0
+const TILE_GRASS := Vector2i(0, 0)
+const TILE_DIRT := Vector2i(1, 0)
+const TILE_STONE := Vector2i(2, 0)
 
 func _ready() -> void:
 	if tile_set == null:
@@ -15,39 +23,52 @@ func _build_tileset() -> TileSet:
 	generated_tileset.add_physics_layer()
 
 	var source := TileSetAtlasSource.new()
-	var image := Image.create(TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
-	image.fill(Color(0.32, 0.32, 0.36, 1.0))
+	var image := Image.create(TILE_SIZE.x * 3, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	image.fill_rect(Rect2i(0, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.34, 0.72, 0.29, 1.0)) # grass
+	image.fill_rect(Rect2i(TILE_SIZE.x, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.53, 0.35, 0.2, 1.0)) # dirt
+	image.fill_rect(Rect2i(TILE_SIZE.x * 2, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.38, 0.38, 0.42, 1.0)) # stone
 	var texture := ImageTexture.create_from_image(image)
 
 	source.texture = texture
 	source.texture_region_size = TILE_SIZE
-	source.create_tile(Vector2i.ZERO)
+	source.create_tile(TILE_GRASS)
+	source.create_tile(TILE_DIRT)
+	source.create_tile(TILE_STONE)
 
-	generated_tileset.add_source(source, 0)
+	generated_tileset.add_source(source, SOURCE_ID)
 
-	var tile_data := source.get_tile_data(Vector2i.ZERO, 0)
-	tile_data.add_collision_polygon(0)
-	tile_data.set_collision_polygon_points(
-		0,
-		0,
-		PackedVector2Array([
-			Vector2(0, 0),
-			Vector2(TILE_SIZE.x, 0),
-			Vector2(TILE_SIZE.x, TILE_SIZE.y),
-			Vector2(0, TILE_SIZE.y)
-		])
-	)
+	for atlas_coords in [TILE_GRASS, TILE_DIRT, TILE_STONE]:
+		var tile_data := source.get_tile_data(atlas_coords, 0)
+		tile_data.add_collision_polygon(0)
+		tile_data.set_collision_polygon_points(
+			0,
+			0,
+			PackedVector2Array([
+				Vector2(0, 0),
+				Vector2(TILE_SIZE.x, 0),
+				Vector2(TILE_SIZE.x, TILE_SIZE.y),
+				Vector2(0, TILE_SIZE.y)
+			])
+		)
 
 	return generated_tileset
 
 func _build_level() -> void:
 	clear()
+	var terrain_noise := FastNoiseLite.new()
+	terrain_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	terrain_noise.seed = 1337
+	terrain_noise.frequency = 0.08
 
-	for x in range(LEVEL_WIDTH):
-		set_cell(0, Vector2i(x, GROUND_Y), 0, Vector2i.ZERO)
+	for x in range(WORLD_WIDTH):
+		var noise_height := int(round(terrain_noise.get_noise_1d(float(x)) * SURFACE_VARIATION))
+		var surface_y := BASE_SURFACE_Y + noise_height
 
-	for x in range(12, 18):
-		set_cell(0, Vector2i(x, GROUND_Y - 3), 0, Vector2i.ZERO)
+		for y in range(surface_y, WORLD_HEIGHT):
+			var atlas_coords := TILE_STONE
+			if y == surface_y:
+				atlas_coords = TILE_GRASS
+			elif y <= surface_y + DIRT_DEPTH:
+				atlas_coords = TILE_DIRT
 
-	for x in range(26, 30):
-		set_cell(0, Vector2i(x, GROUND_Y - 6), 0, Vector2i.ZERO)
+			set_cell(0, Vector2i(x, y), SOURCE_ID, atlas_coords)
