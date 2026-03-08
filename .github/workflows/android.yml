@@ -37,7 +37,7 @@ jobs:
           use_preset_export_path: true
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Android Build
           path: ~/.local/share/godot/archives/*
