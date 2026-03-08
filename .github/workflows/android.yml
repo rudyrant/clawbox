@@ -18,11 +18,18 @@ jobs:
       - name: Make Godot executable
         run: chmod +x Godot_v4.2.2-stable_linux.x86_64
 
+      - name: Debug Workspace Structure
+        run: |
+          echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}"
+          ls -F "${GITHUB_WORKSPACE}"
+          echo "Contents of clawbox/ folder:"
+          ls -F "${GITHUB_WORKSPACE}/clawbox"
+
       - name: Run Editor Headless (Lint Check)
-        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --check-only-update-resources --path clawbox
+        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --check-only-update-resources --path "${GITHUB_WORKSPACE}/clawbox"
 
       - name: Basic Scene Boot Test (Title Screen)
-        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --main-scene scenes/title_screen.tscn --path clawbox
+        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --main-scene scenes/title_screen.tscn --path "${GITHUB_WORKSPACE}/clawbox"
 
   export:
     needs: lint_and_test
