@@ -12,6 +12,8 @@ const TILE_GRASS := Vector2i(0, 0)
 const TILE_DIRT := Vector2i(1, 0)
 const TILE_STONE := Vector2i(2, 0)
 const DROPPED_ITEM_SCENE := preload("res://items/dropped_item.tscn")
+@onready var _player: CharacterBody2D = get_node_or_null("../Player")
+@onready var _player_collision_shape: CollisionShape2D = _player.get_node_or_null("CollisionShape2D") if _player != null else null
 
 func _ready() -> void:
 	if tile_set == null:
@@ -20,10 +22,13 @@ func _ready() -> void:
 	_build_level()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_break_block_from_screen_position(event.position)
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_place_block_from_screen_position(event.position)
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			_break_block_from_screen_position(event.position)
 	elif event is InputEventScreenTouch and event.pressed:
-		_break_block_from_screen_position(event.position)
+		_place_block_from_screen_position(event.position)
 
 func _build_tileset() -> TileSet:
 	var generated_tileset := TileSet.new()
@@ -89,7 +94,33 @@ func _break_block_from_screen_position(screen_position: Vector2) -> void:
 	erase_cell(0, cell)
 	_spawn_dropped_item(cell)
 
+func _place_block_from_screen_position(screen_position: Vector2) -> void:
+	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
+	var cell := local_to_map(to_local(world_position))
+	if get_cell_source_id(0, cell) != -1:
+		return
+	if _would_overlap_player(cell):
+		return
+
+	set_cell(0, cell, SOURCE_ID, TILE_DIRT)
+
 func _spawn_dropped_item(cell: Vector2i) -> void:
 	var dropped_item := DROPPED_ITEM_SCENE.instantiate()
 	dropped_item.global_position = to_global(map_to_local(cell))
 	get_parent().add_child(dropped_item)
+
+func _would_overlap_player(cell: Vector2i) -> bool:
+	if _player_collision_shape == null:
+		return false
+	var rectangle_shape := _player_collision_shape.shape as RectangleShape2D
+	if rectangle_shape == null:
+		return false
+
+	var cell_center_global := to_global(map_to_local(cell))
+	var half_tile_size := Vector2(TILE_SIZE) * 0.5
+	var cell_rect := Rect2(cell_center_global - half_tile_size, Vector2(TILE_SIZE))
+	var player_rect := Rect2(
+		_player_collision_shape.global_position - rectangle_shape.size * 0.5,
+		rectangle_shape.size
+	)
+	return cell_rect.intersects(player_rect)
