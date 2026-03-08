@@ -66,11 +66,22 @@ jobs:
           mkdir -p build
           # 1. Use --import to populate .godot folder
           ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import
-          # 2. Perform the export with full paths
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" $(pwd)/build/clawbox.apk || (echo "EXPORT FAILED - CHECKING PROJECT SETTINGS" && ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . -e --quit && ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" $(pwd)/build/clawbox.apk)
+
+          # 2. Perform the export with full paths (capture failure but keep pipeline alive for artifact upload)
+          set +e
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" $(pwd)/build/clawbox.apk
+          EXPORT_CODE=$?
+          set -e
+
+          if [ $EXPORT_CODE -ne 0 ]; then
+            echo "Godot export failed with exit code $EXPORT_CODE" | tee build/EXPORT_FAILED.txt
+            echo "Run: $GITHUB_RUN_ID" >> build/EXPORT_FAILED.txt
+            echo "Commit: $GITHUB_SHA" >> build/EXPORT_FAILED.txt
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Android Build
-          path: build/clawbox.apk
+          path: build/
+          if-no-files-found: error
