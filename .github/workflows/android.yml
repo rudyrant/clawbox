@@ -18,6 +18,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
       - name: Generate debug keystore
         run: |
           mkdir -p ~/.android
