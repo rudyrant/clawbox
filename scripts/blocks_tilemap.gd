@@ -1,5 +1,7 @@
 extends TileMap
 
+const ITEM_DATA := preload("res://scripts/item_data.gd")
+
 const TILE_SIZE := Vector2i(16, 16)
 const WORLD_WIDTH := 96
 const WORLD_HEIGHT := 40
@@ -18,26 +20,7 @@ const IRON_CHANCE := 0.08
 const INTERACTION_REACH_PIXELS := 88.0
 
 const SOURCE_ID := 0
-const TILE_GRASS := Vector2i(0, 0)
-const TILE_DIRT := Vector2i(1, 0)
-const TILE_STONE := Vector2i(2, 0)
-const TILE_WOOD := Vector2i(3, 0)
-const TILE_IRON_ORE := Vector2i(4, 0)
 const DROPPED_ITEM_SCENE := preload("res://items/dropped_item.tscn")
-const ITEM_TO_ATLAS := {
-	&"grass": TILE_GRASS,
-	&"dirt": TILE_DIRT,
-	&"stone": TILE_STONE,
-	&"wood": TILE_WOOD,
-	&"iron_ore": TILE_IRON_ORE
-}
-const ATLAS_TO_ITEM := {
-	TILE_GRASS: &"grass",
-	TILE_DIRT: &"dirt",
-	TILE_STONE: &"stone",
-	TILE_WOOD: &"wood",
-	TILE_IRON_ORE: &"iron_ore"
-}
 
 signal world_changed
 
@@ -150,25 +133,35 @@ func _build_tileset() -> TileSet:
 	generated_tileset.add_physics_layer()
 
 	var source := TileSetAtlasSource.new()
-	var image := Image.create(TILE_SIZE.x * 5, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
-	image.fill_rect(Rect2i(0, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.34, 0.72, 0.29, 1.0)) # grass
-	image.fill_rect(Rect2i(TILE_SIZE.x, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.53, 0.35, 0.2, 1.0)) # dirt
-	image.fill_rect(Rect2i(TILE_SIZE.x * 2, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.38, 0.38, 0.42, 1.0)) # stone
-	image.fill_rect(Rect2i(TILE_SIZE.x * 3, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.56, 0.39, 0.21, 1.0)) # wood
-	image.fill_rect(Rect2i(TILE_SIZE.x * 4, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.62, 0.55, 0.44, 1.0)) # iron ore
+	var placeable_item_ids := ITEM_DATA.get_placeable_item_ids()
+	var atlas_entries: Array[Vector2i] = []
+	var atlas_width := 0
+	for item_id in placeable_item_ids:
+		var atlas_coords := ITEM_DATA.get_atlas_coords(item_id)
+		if atlas_coords.x < 0 or atlas_coords.y < 0:
+			continue
+		atlas_entries.append(atlas_coords)
+		atlas_width = maxi(atlas_width, atlas_coords.x + 1)
+
+	var image := Image.create(maxi(1, atlas_width) * TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	for item_id in placeable_item_ids:
+		var atlas_coords := ITEM_DATA.get_atlas_coords(item_id)
+		if atlas_coords.x < 0 or atlas_coords.y < 0:
+			continue
+		image.fill_rect(
+			Rect2i(atlas_coords.x * TILE_SIZE.x, atlas_coords.y * TILE_SIZE.y, TILE_SIZE.x, TILE_SIZE.y),
+			ITEM_DATA.get_color(item_id)
+		)
 	var texture := ImageTexture.create_from_image(image)
 
 	source.texture = texture
 	source.texture_region_size = TILE_SIZE
-	source.create_tile(TILE_GRASS)
-	source.create_tile(TILE_DIRT)
-	source.create_tile(TILE_STONE)
-	source.create_tile(TILE_WOOD)
-	source.create_tile(TILE_IRON_ORE)
+	for atlas_coords in atlas_entries:
+		source.create_tile(atlas_coords)
 
 	generated_tileset.add_source(source, SOURCE_ID)
 
-	for atlas_coords in [TILE_GRASS, TILE_DIRT, TILE_STONE, TILE_WOOD, TILE_IRON_ORE]:
+	for atlas_coords in atlas_entries:
 		var tile_data := source.get_tile_data(atlas_coords, 0)
 		tile_data.add_collision_polygon(0)
 		tile_data.set_collision_polygon_points(
@@ -186,6 +179,11 @@ func _build_tileset() -> TileSet:
 
 func _build_level() -> void:
 	clear()
+	var grass_atlas := ITEM_DATA.get_atlas_coords(ITEM_DATA.ID_GRASS)
+	var dirt_atlas := ITEM_DATA.get_atlas_coords(ITEM_DATA.ID_DIRT)
+	var stone_atlas := ITEM_DATA.get_atlas_coords(ITEM_DATA.ID_STONE)
+	var wood_atlas := ITEM_DATA.get_atlas_coords(ITEM_DATA.ID_WOOD)
+	var iron_ore_atlas := ITEM_DATA.get_atlas_coords(ITEM_DATA.ID_IRON_ORE)
 	var terrain_noise := FastNoiseLite.new()
 	terrain_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 	terrain_noise.seed = 1337
@@ -206,11 +204,11 @@ func _build_level() -> void:
 		var surface_y := BASE_SURFACE_Y + noise_height
 
 		for y in range(surface_y, WORLD_HEIGHT):
-			var atlas_coords := TILE_STONE
+			var atlas_coords := stone_atlas
 			if y == surface_y:
-				atlas_coords = TILE_GRASS
+				atlas_coords = grass_atlas
 			elif y <= surface_y + DIRT_DEPTH:
-				atlas_coords = TILE_DIRT
+				atlas_coords = dirt_atlas
 
 			var depth := y - surface_y
 			if depth >= CAVE_START_DEPTH:
@@ -221,10 +219,10 @@ func _build_level() -> void:
 				if cave_shape > cave_cutoff and cave_turbulence > 0.27:
 					continue
 
-			if atlas_coords == TILE_STONE and depth >= IRON_MIN_DEPTH:
+			if atlas_coords == stone_atlas and depth >= IRON_MIN_DEPTH:
 				var ore_value := ore_noise.get_noise_2d(float(x), float(y))
 				if ore_value > (1.0 - IRON_CHANCE * 2.0):
-					atlas_coords = TILE_IRON_ORE
+					atlas_coords = iron_ore_atlas
 
 			set_cell(0, Vector2i(x, y), SOURCE_ID, atlas_coords)
 
@@ -234,7 +232,7 @@ func _build_level() -> void:
 				var trunk_cell := Vector2i(x, surface_y - 1 - i)
 				if trunk_cell.y < 0:
 					break
-				set_cell(0, trunk_cell, SOURCE_ID, TILE_WOOD)
+				set_cell(0, trunk_cell, SOURCE_ID, wood_atlas)
 
 	_carve_cave_tunnels(MIN_CAVE_NOISE, MAX_CAVE_NOISE)
 	queue_redraw()
@@ -305,7 +303,7 @@ func _place_block_at_cell(cell: Vector2i) -> bool:
 	return true
 
 func _spawn_dropped_item(cell: Vector2i, item_id: StringName) -> void:
-	if item_id == &"":
+	if item_id == ITEM_DATA.EMPTY_ITEM_ID:
 		return
 	if get_parent() == null:
 		return
@@ -337,7 +335,7 @@ func _is_cell_within_reach(cell: Vector2i) -> bool:
 	return _player.global_position.distance_to(cell_global) <= INTERACTION_REACH_PIXELS
 
 func _item_id_from_atlas_coords(atlas_coords: Vector2i) -> StringName:
-	return ATLAS_TO_ITEM.get(atlas_coords, &"")
+	return ITEM_DATA.get_item_id_from_atlas_coords(atlas_coords)
 
 func _atlas_coords_from_item_id(item_id: StringName) -> Vector2i:
-	return ITEM_TO_ATLAS.get(item_id, Vector2i(-1, -1))
+	return ITEM_DATA.get_atlas_coords(item_id)

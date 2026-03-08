@@ -1,9 +1,11 @@
 extends CharacterBody2D
 
+const ITEM_DATA := preload("res://scripts/item_data.gd")
+
 const SPEED: float = 300.0
 const JUMP_VELOCITY: float = -450.0
 const HOTBAR_SIZE := 5
-const EMPTY_ITEM_ID: StringName = &""
+const EMPTY_ITEM_ID: StringName = ITEM_DATA.EMPTY_ITEM_ID
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 signal inventory_changed(inventory: Dictionary, hotbar: Array, selected_index: int)

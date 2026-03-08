@@ -1,7 +1,9 @@
 extends Control
 
+const ITEM_DATA := preload("res://scripts/item_data.gd")
+
 const HOTBAR_SIZE := 5
-const EMPTY_ITEM_ID: StringName = &""
+const EMPTY_ITEM_ID: StringName = ITEM_DATA.EMPTY_ITEM_ID
 
 @export var player_path: NodePath = NodePath("../../Player")
 
@@ -166,9 +168,4 @@ func _apply_layout_scaling() -> void:
 	_inventory_toggle_button.add_theme_font_size_override("font_size", panel_font_size)
 
 func _display_name(item_id: StringName) -> String:
-	if item_id == EMPTY_ITEM_ID:
-		return "-"
-	var item_text := str(item_id)
-	if item_text.is_empty():
-		return "-"
-	return item_text.capitalize()
+	return ITEM_DATA.get_display_name(item_id)
