@@ -57,9 +57,9 @@ jobs:
       - name: Godot Android export
         run: |
           mkdir -p build
-          # 1. First, trigger a headless import to ensure all resources are cached
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --editor --quit
-          # 2. Then, perform the export
+          # 1. Use --import to populate .godot folder
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import
+          # 2. Perform the export
           ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
 
       - name: Upload Artifact
