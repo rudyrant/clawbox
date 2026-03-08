@@ -22,7 +22,7 @@ jobs:
         run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --check-only-update-resources --path .
 
       - name: Basic Scene Boot Test (Title Screen)
-        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --main-scene scenes/title_screen.tscn --path .
+        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --main-scene clawbox/scenes/title_screen.tscn --path .
 
   export:
     needs: lint_and_test
@@ -50,10 +50,11 @@ jobs:
         with:
           godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
           godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
-          relative_project_path: ./
+          relative_project_path: ./clawbox/
           archive_output: true
           export_debug: true
           use_preset_export_path: true
+          debug_keystore_path: ~/.android/debug.keystore
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
