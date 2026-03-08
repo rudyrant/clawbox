@@ -6,6 +6,7 @@ const WORLD_HEIGHT := 40
 const BASE_SURFACE_Y := 12
 const SURFACE_VARIATION := 3
 const DIRT_DEPTH := 3
+const INTERACTION_REACH_PIXELS := 88.0
 
 const SOURCE_ID := 0
 const TILE_GRASS := Vector2i(0, 0)
@@ -18,20 +19,37 @@ signal world_changed
 @onready var _player: CharacterBody2D = get_node_or_null("../Player")
 @onready var _player_collision_shape: CollisionShape2D = _player.get_node_or_null("CollisionShape2D") if _player != null else null
 
+var _target_cell := Vector2i.ZERO
+var _has_target_cell := false
+
 func _ready() -> void:
 	if tile_set == null:
 		tile_set = _build_tileset()
 
 	_build_level()
 
+func _draw() -> void:
+	if not _has_target_cell:
+		return
+
+	var tile_center := map_to_local(_target_cell)
+	var half_tile_size := Vector2(TILE_SIZE) * 0.5
+	var tile_rect := Rect2(tile_center - half_tile_size, Vector2(TILE_SIZE))
+	draw_rect(tile_rect, Color(1.0, 1.0, 1.0, 0.75), false, 1.5)
+
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
+	if event is InputEventMouseMotion:
+		_set_target_from_screen_position(event.position)
+	elif event is InputEventMouseButton and event.pressed:
+		_set_target_from_screen_position(event.position)
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			_place_block_from_screen_position(event.position)
+			place_targeted_block()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_break_block_from_screen_position(event.position)
+			break_targeted_block()
 	elif event is InputEventScreenTouch and event.pressed:
-		_place_block_from_screen_position(event.position)
+		_set_target_from_screen_position(event.position)
+	elif event is InputEventScreenDrag:
+		_set_target_from_screen_position(event.position)
 
 func generate_default_world() -> void:
 	_build_level()
@@ -76,7 +94,28 @@ func load_world_state(data: Dictionary) -> bool:
 
 		set_cell(0, Vector2i(x, y), source_id, Vector2i(atlas_x, atlas_y))
 
+	queue_redraw()
 	return true
+
+func break_targeted_block() -> bool:
+	if not _has_target_cell:
+		return false
+	if not _is_cell_within_reach(_target_cell):
+		return false
+	return _break_block_at_cell(_target_cell)
+
+func place_targeted_block() -> bool:
+	if not _has_target_cell:
+		return false
+	if not _is_cell_within_reach(_target_cell):
+		return false
+	return _place_block_at_cell(_target_cell)
+
+func _set_target_from_screen_position(screen_position: Vector2) -> void:
+	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
+	_target_cell = local_to_map(to_local(world_position))
+	_has_target_cell = true
+	queue_redraw()
 
 func _build_tileset() -> TileSet:
 	var generated_tileset := TileSet.new()
@@ -132,39 +171,40 @@ func _build_level() -> void:
 				atlas_coords = TILE_DIRT
 
 			set_cell(0, Vector2i(x, y), SOURCE_ID, atlas_coords)
+	queue_redraw()
 
-func _break_block_from_screen_position(screen_position: Vector2) -> void:
-	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
-	var cell := local_to_map(to_local(world_position))
+func _break_block_at_cell(cell: Vector2i) -> bool:
 	var source_id := get_cell_source_id(0, cell)
 	if source_id == -1:
-		return
+		return false
 	var atlas_coords := get_cell_atlas_coords(0, cell)
 
 	erase_cell(0, cell)
 	_spawn_dropped_item(cell, _item_id_from_atlas_coords(atlas_coords))
 	world_changed.emit()
+	queue_redraw()
+	return true
 
-func _place_block_from_screen_position(screen_position: Vector2) -> void:
-	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
-	var cell := local_to_map(to_local(world_position))
+func _place_block_at_cell(cell: Vector2i) -> bool:
 	if get_cell_source_id(0, cell) != -1:
-		return
+		return false
 	if _would_overlap_player(cell):
-		return
+		return false
 
 	if _player == null or not _player.has_method("get_selected_item_id") or not _player.has_method("consume_selected_item"):
-		return
+		return false
 
 	var selected_item_id: StringName = _player.get_selected_item_id()
 	var atlas_coords := _atlas_coords_from_item_id(selected_item_id)
 	if atlas_coords.x < 0:
-		return
+		return false
 	if not _player.consume_selected_item(1):
-		return
+		return false
 
 	set_cell(0, cell, SOURCE_ID, atlas_coords)
 	world_changed.emit()
+	queue_redraw()
+	return true
 
 func _spawn_dropped_item(cell: Vector2i, item_id: StringName) -> void:
 	if item_id == &"":
@@ -189,6 +229,12 @@ func _would_overlap_player(cell: Vector2i) -> bool:
 		rectangle_shape.size
 	)
 	return cell_rect.intersects(player_rect)
+
+func _is_cell_within_reach(cell: Vector2i) -> bool:
+	if _player == null:
+		return true
+	var cell_global := to_global(map_to_local(cell))
+	return _player.global_position.distance_to(cell_global) <= INTERACTION_REACH_PIXELS
 
 func _item_id_from_atlas_coords(atlas_coords: Vector2i) -> StringName:
 	if atlas_coords == TILE_GRASS:

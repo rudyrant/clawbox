@@ -9,6 +9,7 @@ const EMPTY_ITEM_ID: StringName = &""
 @onready var _inventory_list: VBoxContainer = $InventoryPanel/Margin/VBox
 @onready var _hotbar_panel: PanelContainer = $HotbarPanel
 @onready var _hotbar_row: HBoxContainer = $HotbarPanel/Margin/HotbarRow
+@onready var _inventory_toggle_button: Button = $InventoryToggleButton
 
 var _player: Node = null
 var _hotbar_buttons: Array[Button] = []
@@ -17,6 +18,8 @@ var _inventory_snapshot: Dictionary = {}
 func _ready() -> void:
 	_create_hotbar_buttons()
 	_connect_player()
+	_inventory_toggle_button.pressed.connect(_on_inventory_toggle_pressed)
+	_inventory_panel.visible = false
 	get_viewport().size_changed.connect(_apply_layout_scaling)
 	_apply_layout_scaling()
 
@@ -100,6 +103,10 @@ func _on_hotbar_slot_pressed(slot_index: int) -> void:
 	if _player.has_method("select_hotbar_slot"):
 		_player.select_hotbar_slot(slot_index)
 
+func _on_inventory_toggle_pressed() -> void:
+	_inventory_panel.visible = not _inventory_panel.visible
+	_inventory_toggle_button.text = "Hide" if _inventory_panel.visible else "Bag"
+
 func _apply_layout_scaling() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var short_side: float = min(viewport_size.x, viewport_size.y)
@@ -132,6 +139,18 @@ func _apply_layout_scaling() -> void:
 	_inventory_panel.offset_top = margin
 	_inventory_panel.offset_right = margin + clamp(160.0 * scale_factor, 150.0, 280.0)
 	_inventory_panel.offset_bottom = margin + clamp(120.0 * scale_factor, 110.0, 260.0)
+
+	_inventory_toggle_button.anchor_left = 1.0
+	_inventory_toggle_button.anchor_right = 1.0
+	_inventory_toggle_button.anchor_top = 0.0
+	_inventory_toggle_button.anchor_bottom = 0.0
+	var toggle_width := clamp(86.0 * scale_factor, 72.0, 130.0)
+	var toggle_height := clamp(44.0 * scale_factor, 40.0, 72.0)
+	_inventory_toggle_button.offset_left = -margin - toggle_width
+	_inventory_toggle_button.offset_right = -margin
+	_inventory_toggle_button.offset_top = margin
+	_inventory_toggle_button.offset_bottom = margin + toggle_height
+	_inventory_toggle_button.custom_minimum_size = Vector2(toggle_width, toggle_height)
 
 func _display_name(item_id: StringName) -> String:
 	if item_id == EMPTY_ITEM_ID:

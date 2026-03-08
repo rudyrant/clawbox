@@ -13,6 +13,9 @@ var inventory: Dictionary = {}
 var hotbar: Array[StringName] = []
 var selected_hotbar_index: int = 0
 
+var _touch_move_input := 0.0
+var _touch_jump_queued := false
+
 func _ready() -> void:
 	hotbar.resize(HOTBAR_SIZE)
 	for index in range(HOTBAR_SIZE):
@@ -23,10 +26,15 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
-	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
+	if (Input.is_action_just_pressed("ui_accept") or _touch_jump_queued) and is_on_floor():
 		velocity.y = JUMP_VELOCITY
+	_touch_jump_queued = false
 
-	var direction: float = Input.get_axis("ui_left", "ui_right")
+	var keyboard_direction: float = Input.get_axis("ui_left", "ui_right")
+	var direction: float = keyboard_direction
+	if absf(_touch_move_input) > 0.01:
+		direction = _touch_move_input
+
 	if direction != 0.0:
 		velocity.x = direction * SPEED
 	else:
@@ -53,6 +61,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			select_hotbar_slot(selected_hotbar_index - 1)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			select_hotbar_slot(selected_hotbar_index + 1)
+
+func set_move_input(direction: float) -> void:
+	_touch_move_input = clampf(direction, -1.0, 1.0)
+
+func request_jump() -> void:
+	_touch_jump_queued = true
 
 func collect_item(item_id: StringName, amount: int = 1) -> void:
 	if item_id == EMPTY_ITEM_ID or amount <= 0:
