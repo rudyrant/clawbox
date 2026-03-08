@@ -6,12 +6,23 @@ const WORLD_HEIGHT := 40
 const BASE_SURFACE_Y := 12
 const SURFACE_VARIATION := 3
 const DIRT_DEPTH := 3
+const TREE_CHANCE := 0.1
+const TREE_MIN_HEIGHT := 3
+const TREE_MAX_HEIGHT := 6
+const CAVE_START_DEPTH := 4
+const CAVE_THRESHOLD := 0.43
+const MIN_CAVE_NOISE := 0.03
+const MAX_CAVE_NOISE := 0.085
+const IRON_MIN_DEPTH := 6
+const IRON_CHANCE := 0.08
 const INTERACTION_REACH_PIXELS := 88.0
 
 const SOURCE_ID := 0
 const TILE_GRASS := Vector2i(0, 0)
 const TILE_DIRT := Vector2i(1, 0)
 const TILE_STONE := Vector2i(2, 0)
+const TILE_WOOD := Vector2i(3, 0)
+const TILE_IRON_ORE := Vector2i(4, 0)
 const DROPPED_ITEM_SCENE := preload("res://items/dropped_item.tscn")
 
 signal world_changed
@@ -122,10 +133,12 @@ func _build_tileset() -> TileSet:
 	generated_tileset.add_physics_layer()
 
 	var source := TileSetAtlasSource.new()
-	var image := Image.create(TILE_SIZE.x * 3, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	var image := Image.create(TILE_SIZE.x * 5, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
 	image.fill_rect(Rect2i(0, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.34, 0.72, 0.29, 1.0)) # grass
 	image.fill_rect(Rect2i(TILE_SIZE.x, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.53, 0.35, 0.2, 1.0)) # dirt
 	image.fill_rect(Rect2i(TILE_SIZE.x * 2, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.38, 0.38, 0.42, 1.0)) # stone
+	image.fill_rect(Rect2i(TILE_SIZE.x * 3, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.56, 0.39, 0.21, 1.0)) # wood
+	image.fill_rect(Rect2i(TILE_SIZE.x * 4, 0, TILE_SIZE.x, TILE_SIZE.y), Color(0.62, 0.55, 0.44, 1.0)) # iron ore
 	var texture := ImageTexture.create_from_image(image)
 
 	source.texture = texture
@@ -133,10 +146,12 @@ func _build_tileset() -> TileSet:
 	source.create_tile(TILE_GRASS)
 	source.create_tile(TILE_DIRT)
 	source.create_tile(TILE_STONE)
+	source.create_tile(TILE_WOOD)
+	source.create_tile(TILE_IRON_ORE)
 
 	generated_tileset.add_source(source, SOURCE_ID)
 
-	for atlas_coords in [TILE_GRASS, TILE_DIRT, TILE_STONE]:
+	for atlas_coords in [TILE_GRASS, TILE_DIRT, TILE_STONE, TILE_WOOD, TILE_IRON_ORE]:
 		var tile_data := source.get_tile_data(atlas_coords, 0)
 		tile_data.add_collision_polygon(0)
 		tile_data.set_collision_polygon_points(
@@ -158,6 +173,16 @@ func _build_level() -> void:
 	terrain_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 	terrain_noise.seed = 1337
 	terrain_noise.frequency = 0.08
+	var cave_noise := FastNoiseLite.new()
+	cave_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	cave_noise.seed = 2442
+	cave_noise.frequency = 0.06
+	var ore_noise := FastNoiseLite.new()
+	ore_noise.noise_type = FastNoiseLite.TYPE_PERLIN
+	ore_noise.seed = 9851
+	ore_noise.frequency = 0.17
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 777
 
 	for x in range(WORLD_WIDTH):
 		var noise_height := int(round(terrain_noise.get_noise_1d(float(x)) * SURFACE_VARIATION))
@@ -170,8 +195,64 @@ func _build_level() -> void:
 			elif y <= surface_y + DIRT_DEPTH:
 				atlas_coords = TILE_DIRT
 
+			var depth := y - surface_y
+			if depth >= CAVE_START_DEPTH:
+				var cave_turbulence := absf(cave_noise.get_noise_2d(float(x) * 1.8, float(y) * 1.8))
+				var cave_shape := absf(cave_noise.get_noise_2d(float(x), float(y)))
+				var depth_blend := clampf(float(depth) / float(WORLD_HEIGHT), 0.0, 1.0)
+				var cave_cutoff := lerpf(CAVE_THRESHOLD + 0.06, CAVE_THRESHOLD - 0.06, depth_blend)
+				if cave_shape > cave_cutoff and cave_turbulence > 0.27:
+					continue
+
+			if atlas_coords == TILE_STONE and depth >= IRON_MIN_DEPTH:
+				var ore_value := ore_noise.get_noise_2d(float(x), float(y))
+				if ore_value > (1.0 - IRON_CHANCE * 2.0):
+					atlas_coords = TILE_IRON_ORE
+
 			set_cell(0, Vector2i(x, y), SOURCE_ID, atlas_coords)
+
+		if rng.randf() < TREE_CHANCE:
+			var tree_height := rng.randi_range(TREE_MIN_HEIGHT, TREE_MAX_HEIGHT)
+			for i in range(tree_height):
+				var trunk_cell := Vector2i(x, surface_y - 1 - i)
+				if trunk_cell.y < 0:
+					break
+				set_cell(0, trunk_cell, SOURCE_ID, TILE_WOOD)
+
+	_carve_cave_tunnels(MIN_CAVE_NOISE, MAX_CAVE_NOISE)
 	queue_redraw()
+
+func _carve_cave_tunnels(min_noise: float, max_noise: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9001
+	var tunnel_count := 6
+
+	for _i in range(tunnel_count):
+		var position := Vector2(
+			rng.randi_range(0, WORLD_WIDTH - 1),
+			rng.randi_range(BASE_SURFACE_Y + 2, WORLD_HEIGHT - 8)
+		)
+		var angle := rng.randf_range(0.0, TAU)
+		var step_length := rng.randi_range(18, 32)
+		var noise_strength := rng.randf_range(min_noise, max_noise)
+
+		for _step in range(step_length):
+			var tunnel_radius := rng.randi_range(1, 2)
+			_carve_circle(Vector2i(int(round(position.x)), int(round(position.y))), tunnel_radius)
+			angle += rng.randf_range(-0.55, 0.55)
+			position += Vector2.RIGHT.rotated(angle) * rng.randf_range(0.9, 1.4)
+			position.x = clampf(position.x + rng.randf_range(-noise_strength, noise_strength), 0.0, WORLD_WIDTH - 1.0)
+			position.y = clampf(position.y + rng.randf_range(-noise_strength, noise_strength), BASE_SURFACE_Y + 1.0, WORLD_HEIGHT - 2.0)
+
+func _carve_circle(center: Vector2i, radius: int) -> void:
+	for dx in range(-radius, radius + 1):
+		for dy in range(-radius, radius + 1):
+			if dx * dx + dy * dy > radius * radius:
+				continue
+			var cell := center + Vector2i(dx, dy)
+			if cell.x < 0 or cell.x >= WORLD_WIDTH or cell.y < 0 or cell.y >= WORLD_HEIGHT:
+				continue
+			erase_cell(0, cell)
 
 func _break_block_at_cell(cell: Vector2i) -> bool:
 	var source_id := get_cell_source_id(0, cell)
@@ -243,6 +324,10 @@ func _item_id_from_atlas_coords(atlas_coords: Vector2i) -> StringName:
 		return &"dirt"
 	if atlas_coords == TILE_STONE:
 		return &"stone"
+	if atlas_coords == TILE_WOOD:
+		return &"wood"
+	if atlas_coords == TILE_IRON_ORE:
+		return &"iron_ore"
 	return &""
 
 func _atlas_coords_from_item_id(item_id: StringName) -> Vector2i:
@@ -252,4 +337,8 @@ func _atlas_coords_from_item_id(item_id: StringName) -> Vector2i:
 		return TILE_DIRT
 	if item_id == &"stone":
 		return TILE_STONE
+	if item_id == &"wood":
+		return TILE_WOOD
+	if item_id == &"iron_ore":
+		return TILE_IRON_ORE
 	return Vector2i(-1, -1)
