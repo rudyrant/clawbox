@@ -32,8 +32,6 @@ jobs:
   export:
     needs: lint_and_test
     runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.2.2
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -44,16 +42,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android Build Tools
         run: |
-          apt-get update && apt-get install -y default-jdk wget unzip python3
-          # Download Android commandline tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
-          mkdir -p /opt/android-sdk/cmdline-tools
-          unzip cmdline-tools.zip -d /opt/android-sdk/cmdline-tools/
-          mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
-          yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-          /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33"
+          sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33"
 
       - name: Generate debug keystore
         run: |
@@ -62,8 +56,6 @@ jobs:
 
       - name: Godot Android export
         uses: firebelley/godot-export@v5.2.1
-        env:
-          ANDROID_SDK_ROOT: /opt/android-sdk
         with:
           godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
           godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
