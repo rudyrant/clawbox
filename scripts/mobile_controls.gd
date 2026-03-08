@@ -37,6 +37,13 @@ func _ready() -> void:
 	_apply_layout()
 	_show_initial_controls_overlay()
 
+func _exit_tree() -> void:
+	_left_held = false
+	_right_held = false
+	_mine_held = false
+	_place_held = false
+	_update_move_input()
+
 func _input(event: InputEvent) -> void:
 	if not _initial_overlay_active:
 		return
@@ -117,6 +124,8 @@ func _show_initial_controls_overlay() -> void:
 
 func _auto_hide_initial_controls_overlay() -> void:
 	await get_tree().create_timer(INITIAL_OVERLAY_DURATION).timeout
+	if not is_inside_tree():
+		return
 	_dismiss_initial_controls_overlay()
 
 func _dismiss_initial_controls_overlay() -> void:

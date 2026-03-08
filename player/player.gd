@@ -75,7 +75,6 @@ func collect_item(item_id: StringName, amount: int = 1) -> void:
 	inventory[item_id] = int(inventory.get(item_id, 0)) + amount
 	_assign_hotbar_slot_if_needed(item_id)
 	_emit_inventory_changed()
-	print("Picked up %s x%d (new stack: %d)" % [str(item_id), amount, int(inventory[item_id])])
 
 func select_hotbar_slot(index: int) -> void:
 	var wrapped_index := wrapi(index, 0, HOTBAR_SIZE)

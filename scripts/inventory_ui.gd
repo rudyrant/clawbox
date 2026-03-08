@@ -48,11 +48,15 @@ func _connect_player() -> void:
 		_inventory_snapshot = _player.get_inventory_snapshot()
 	if _player.has_method("get_hotbar_data") and _player.has_method("get_selected_hotbar_index"):
 		_on_inventory_changed(_inventory_snapshot, _player.get_hotbar_data(), _player.get_selected_hotbar_index())
+	else:
+		_refresh_inventory_list()
 
 func _on_inventory_changed(inventory: Dictionary, hotbar: Array, selected_index: int) -> void:
-	_inventory_snapshot = inventory
+	var inventory_changed := inventory != _inventory_snapshot
+	_inventory_snapshot = inventory.duplicate()
 	_refresh_hotbar_buttons(hotbar, selected_index)
-	_refresh_inventory_list()
+	if inventory_changed or _inventory_list.get_child_count() == 0:
+		_refresh_inventory_list()
 
 func _refresh_hotbar_buttons(hotbar: Array, selected_index: int) -> void:
 	for slot_index in range(HOTBAR_SIZE):

@@ -1,0 +1,1 @@
+# Ignore vendored GitHub CLI bundle from Godot resource import scanning.
