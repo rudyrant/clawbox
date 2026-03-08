@@ -1,16 +1,16 @@
 [gd_scene load_steps=3 format=3 uid="uid://c3w0wxbgt8qf7"]
 
-[ext_resource type="Script" path="res://player/player.gd" id="1_abcde"]
+[ext_resource type="Script" path="res://player/player.gd" id="1_player_script"]
 
-[sub_resource type="CapsuleShape2D" id="RectangleShape2D_12345"]
-height=32.0
-width=16.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
+size = Vector2(14, 28)
 
 [node name="Player" type="CharacterBody2D"]
-script = ExtResource("1_abcde")
+script = ExtResource("1_player_script")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("res://icon.svg")
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-7, -14, 7, -14, 7, 14, -7, 14)
+color = Color(0.25, 0.72, 0.95, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_12345")
+shape = SubResource("RectangleShape2D_player")
