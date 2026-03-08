@@ -64,6 +64,7 @@ jobs:
           export_debug: true
           use_preset_export_path: true
           debug_keystore_path: ~/.android/debug.keystore
+          custom_godot_image: ubuntu:22.04
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
