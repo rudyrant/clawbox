@@ -57,8 +57,9 @@ jobs:
       - name: Godot Android export
         run: |
           mkdir -p build
-          # Try to force editor settings load and export
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
+          # Export to a non-build folder first to see if it's a permission/path issue
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" clawbox.apk
+          mv clawbox.apk build/clawbox.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
