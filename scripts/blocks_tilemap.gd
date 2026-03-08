@@ -24,6 +24,20 @@ const TILE_STONE := Vector2i(2, 0)
 const TILE_WOOD := Vector2i(3, 0)
 const TILE_IRON_ORE := Vector2i(4, 0)
 const DROPPED_ITEM_SCENE := preload("res://items/dropped_item.tscn")
+const ITEM_TO_ATLAS := {
+	&"grass": TILE_GRASS,
+	&"dirt": TILE_DIRT,
+	&"stone": TILE_STONE,
+	&"wood": TILE_WOOD,
+	&"iron_ore": TILE_IRON_ORE
+}
+const ATLAS_TO_ITEM := {
+	TILE_GRASS: &"grass",
+	TILE_DIRT: &"dirt",
+	TILE_STONE: &"stone",
+	TILE_WOOD: &"wood",
+	TILE_IRON_ORE: &"iron_ore"
+}
 
 signal world_changed
 
@@ -124,7 +138,10 @@ func place_targeted_block() -> bool:
 
 func _set_target_from_screen_position(screen_position: Vector2) -> void:
 	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
-	_target_cell = local_to_map(to_local(world_position))
+	var next_cell := local_to_map(to_local(world_position))
+	if _has_target_cell and next_cell == _target_cell:
+		return
+	_target_cell = next_cell
 	_has_target_cell = true
 	queue_redraw()
 
@@ -290,6 +307,8 @@ func _place_block_at_cell(cell: Vector2i) -> bool:
 func _spawn_dropped_item(cell: Vector2i, item_id: StringName) -> void:
 	if item_id == &"":
 		return
+	if get_parent() == null:
+		return
 	var dropped_item := DROPPED_ITEM_SCENE.instantiate()
 	dropped_item.global_position = to_global(map_to_local(cell))
 	dropped_item.item_id = item_id
@@ -318,27 +337,7 @@ func _is_cell_within_reach(cell: Vector2i) -> bool:
 	return _player.global_position.distance_to(cell_global) <= INTERACTION_REACH_PIXELS
 
 func _item_id_from_atlas_coords(atlas_coords: Vector2i) -> StringName:
-	if atlas_coords == TILE_GRASS:
-		return &"grass"
-	if atlas_coords == TILE_DIRT:
-		return &"dirt"
-	if atlas_coords == TILE_STONE:
-		return &"stone"
-	if atlas_coords == TILE_WOOD:
-		return &"wood"
-	if atlas_coords == TILE_IRON_ORE:
-		return &"iron_ore"
-	return &""
+	return ATLAS_TO_ITEM.get(atlas_coords, &"")
 
 func _atlas_coords_from_item_id(item_id: StringName) -> Vector2i:
-	if item_id == &"grass":
-		return TILE_GRASS
-	if item_id == &"dirt":
-		return TILE_DIRT
-	if item_id == &"stone":
-		return TILE_STONE
-	if item_id == &"wood":
-		return TILE_WOOD
-	if item_id == &"iron_ore":
-		return TILE_IRON_ORE
-	return Vector2i(-1, -1)
+	return ITEM_TO_ATLAS.get(item_id, Vector2i(-1, -1))

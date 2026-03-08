@@ -52,7 +52,7 @@ theme_override_font_sizes/font_size = 44
 
 [node name="Subtitle" type="Label" parent="Center/MenuPanel/Margin/VBox"]
 layout_mode = 2
-text = "Placeholder Main Menu\nTap Start Game to begin."
+text = "Prototype Main Menu\nTap Start Game to begin."
 horizontal_alignment = 1
 autowrap_mode = 2
 theme_override_font_sizes/font_size = 18

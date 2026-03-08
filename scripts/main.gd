@@ -2,11 +2,13 @@ extends Node2D
 
 const SAVE_PATH := "user://savegame.json"
 const SAVE_VERSION := 1
+const AUTOSAVE_DELAY_SECONDS := 0.35
 
 @onready var _blocks: Node = $Blocks
 @onready var _player: Node = $Player
 
 var _is_loading := false
+var _save_queued := false
 
 func _ready() -> void:
 	_connect_state_signals()
@@ -20,11 +22,23 @@ func _connect_state_signals() -> void:
 	tree_exiting.connect(_on_tree_exiting)
 
 func _on_tree_exiting() -> void:
+	_save_queued = false
 	_save_game()
 
 func _on_state_changed(_arg1 = null, _arg2 = null, _arg3 = null) -> void:
 	if _is_loading:
 		return
+	_queue_save()
+
+func _queue_save() -> void:
+	if _save_queued:
+		return
+	_save_queued = true
+	await get_tree().create_timer(AUTOSAVE_DELAY_SECONDS).timeout
+	if not is_inside_tree():
+		_save_queued = false
+		return
+	_save_queued = false
 	_save_game()
 
 func _save_game() -> void:

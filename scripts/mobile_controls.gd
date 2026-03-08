@@ -5,6 +5,8 @@ extends Control
 
 const ACTION_REPEAT_INTERVAL := 0.12
 const INITIAL_OVERLAY_DURATION := 4.0
+const OVERLAY_VISIBLE_TEXT := "Hide"
+const OVERLAY_HIDDEN_TEXT := "Controls"
 
 var _player: Node = null
 var _blocks: Node = null
@@ -102,13 +104,14 @@ func _create_controls_overlay() -> void:
 	_controls_overlay_label = Label.new()
 	_controls_overlay_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_controls_overlay_label.text = "Mobile Controls\nLeft side: virtual joystick / D-pad for movement.\nRight side: Jump, Mine, Place buttons.\nTap Bag to open/close inventory."
+	_controls_overlay_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	margin.add_child(_controls_overlay_label)
 
 func _show_initial_controls_overlay() -> void:
 	if _controls_overlay_panel == null:
 		return
 	_controls_overlay_panel.visible = true
-	_overlay_toggle_button.text = "Hide"
+	_overlay_toggle_button.text = OVERLAY_VISIBLE_TEXT
 	_initial_overlay_active = true
 	_auto_hide_initial_controls_overlay()
 
@@ -122,7 +125,7 @@ func _dismiss_initial_controls_overlay() -> void:
 	_initial_overlay_active = false
 	if _controls_overlay_panel != null:
 		_controls_overlay_panel.visible = false
-	_overlay_toggle_button.text = "Controls"
+	_overlay_toggle_button.text = OVERLAY_HIDDEN_TEXT
 
 func _make_button(label: String) -> Button:
 	var button := Button.new()
@@ -165,7 +168,8 @@ func _apply_layout() -> void:
 	_place_button.position = Vector2(viewport_size.x - margin - action_width, viewport_size.y - safe_bottom)
 	_mine_button.position = Vector2(viewport_size.x - margin - action_width, _place_button.position.y - action_height - gap)
 	_jump_button.position = Vector2(viewport_size.x - margin - action_width, _mine_button.position.y - action_height - gap)
-	_overlay_toggle_button.position = Vector2(viewport_size.x - margin - toggle_width, margin)
+	# Keep this opposite the Bag button to avoid overlap on mobile.
+	_overlay_toggle_button.position = Vector2(margin, margin)
 
 	_controls_overlay_panel.custom_minimum_size = Vector2(overlay_width, 0.0)
 	_controls_overlay_panel.position = Vector2((viewport_size.x - overlay_width) * 0.5, margin + toggle_height + gap)
@@ -243,4 +247,4 @@ func _on_toggle_controls_overlay() -> void:
 		return
 	_initial_overlay_active = false
 	_controls_overlay_panel.visible = not _controls_overlay_panel.visible
-	_overlay_toggle_button.text = "Hide" if _controls_overlay_panel.visible else "Controls"
+	_overlay_toggle_button.text = OVERLAY_VISIBLE_TEXT if _controls_overlay_panel.visible else OVERLAY_HIDDEN_TEXT

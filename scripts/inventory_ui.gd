@@ -51,6 +51,10 @@ func _connect_player() -> void:
 
 func _on_inventory_changed(inventory: Dictionary, hotbar: Array, selected_index: int) -> void:
 	_inventory_snapshot = inventory
+	_refresh_hotbar_buttons(hotbar, selected_index)
+	_refresh_inventory_list()
+
+func _refresh_hotbar_buttons(hotbar: Array, selected_index: int) -> void:
 	for slot_index in range(HOTBAR_SIZE):
 		if slot_index >= _hotbar_buttons.size():
 			break
@@ -58,9 +62,11 @@ func _on_inventory_changed(inventory: Dictionary, hotbar: Array, selected_index:
 		var item_id: StringName = EMPTY_ITEM_ID
 		var count := 0
 		if slot_index < hotbar.size():
-			var slot_data: Dictionary = hotbar[slot_index]
-			item_id = slot_data.get("item_id", EMPTY_ITEM_ID)
-			count = int(slot_data.get("count", 0))
+			var slot_variant = hotbar[slot_index]
+			if slot_variant is Dictionary:
+				var slot_data := slot_variant as Dictionary
+				item_id = slot_data.get("item_id", EMPTY_ITEM_ID)
+				count = int(slot_data.get("count", 0))
 
 		var name_text := "-"
 		if item_id != EMPTY_ITEM_ID:
@@ -68,13 +74,11 @@ func _on_inventory_changed(inventory: Dictionary, hotbar: Array, selected_index:
 		button.text = "%d\n%s\nx%d" % [slot_index + 1, name_text, count]
 		button.modulate = Color(1.0, 1.0, 1.0, 1.0) if slot_index == selected_index else Color(0.8, 0.8, 0.8, 0.95)
 
-	_refresh_inventory_list()
-
 func _on_selected_hotbar_changed(selected_index: int) -> void:
 	if _player == null:
 		return
 	if _player.has_method("get_hotbar_data"):
-		_on_inventory_changed(_inventory_snapshot, _player.get_hotbar_data(), selected_index)
+		_refresh_hotbar_buttons(_player.get_hotbar_data(), selected_index)
 
 func _refresh_inventory_list() -> void:
 	for child in _inventory_list.get_children():
@@ -113,15 +117,19 @@ func _apply_layout_scaling() -> void:
 	var scale_factor: float = clamp(short_side / 360.0, 0.85, 1.8)
 
 	var slot_size: float = clamp(54.0 * scale_factor, 44.0, 92.0)
+	var slot_height: float = clamp(64.0 * scale_factor, 52.0, 108.0)
 	var gap: float = clamp(6.0 * scale_factor, 4.0, 12.0)
 	var margin: float = clamp(12.0 * scale_factor, 10.0, 24.0)
+	var button_font_size := int(clamp(11.0 * scale_factor, 10.0, 18.0))
+	var panel_font_size := int(clamp(15.0 * scale_factor, 12.0, 22.0))
 
 	_hotbar_row.add_theme_constant_override("separation", int(round(gap)))
 	for button in _hotbar_buttons:
-		button.custom_minimum_size = Vector2(slot_size, slot_size)
+		button.custom_minimum_size = Vector2(slot_size, slot_height)
+		button.add_theme_font_size_override("font_size", button_font_size)
 
 	var hotbar_width: float = HOTBAR_SIZE * slot_size + (HOTBAR_SIZE - 1) * gap + margin * 2.0
-	var hotbar_height: float = slot_size + margin * 2.0
+	var hotbar_height: float = slot_height + margin * 2.0
 	_hotbar_panel.anchor_left = 0.5
 	_hotbar_panel.anchor_right = 0.5
 	_hotbar_panel.anchor_top = 1.0
@@ -138,7 +146,7 @@ func _apply_layout_scaling() -> void:
 	_inventory_panel.offset_left = margin
 	_inventory_panel.offset_top = margin
 	_inventory_panel.offset_right = margin + clamp(160.0 * scale_factor, 150.0, 280.0)
-	_inventory_panel.offset_bottom = margin + clamp(120.0 * scale_factor, 110.0, 260.0)
+	_inventory_panel.offset_bottom = margin + minf(clamp(140.0 * scale_factor, 130.0, 320.0), viewport_size.y * 0.55)
 
 	_inventory_toggle_button.anchor_left = 1.0
 	_inventory_toggle_button.anchor_right = 1.0
@@ -151,6 +159,7 @@ func _apply_layout_scaling() -> void:
 	_inventory_toggle_button.offset_top = margin
 	_inventory_toggle_button.offset_bottom = margin + toggle_height
 	_inventory_toggle_button.custom_minimum_size = Vector2(toggle_width, toggle_height)
+	_inventory_toggle_button.add_theme_font_size_override("font_size", panel_font_size)
 
 func _display_name(item_id: StringName) -> String:
 	if item_id == EMPTY_ITEM_ID:
