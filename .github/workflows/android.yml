@@ -54,6 +54,18 @@ jobs:
           mkdir -p ~/.android
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
 
+      - name: Configure Godot editor settings for debug keystore
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/debug_keystore="/home/runner/.android/debug.keystore"
+          export/android/debug_keystore_user="androiddebugkey"
+          export/android/debug_keystore_pass="android"
+          EOF
+
       - name: Godot Android export
         uses: firebelley/godot-export@v5.2.1
         with:
@@ -63,8 +75,6 @@ jobs:
           archive_output: true
           export_debug: true
           use_preset_export_path: true
-          debug_keystore_path: ~/.android/debug.keystore
-          custom_godot_image: barichello/godot-ci:4.2.2
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
