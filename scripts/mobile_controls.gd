@@ -4,6 +4,7 @@ extends Control
 @export var blocks_path: NodePath = NodePath("../../Blocks")
 
 const ACTION_REPEAT_INTERVAL := 0.12
+const INITIAL_OVERLAY_DURATION := 4.0
 
 var _player: Node = null
 var _blocks: Node = null
@@ -24,6 +25,7 @@ var _place_held := false
 
 var _mine_repeat_timer := 0.0
 var _place_repeat_timer := 0.0
+var _initial_overlay_active := false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -31,6 +33,17 @@ func _ready() -> void:
 	_connect_world_nodes()
 	get_viewport().size_changed.connect(_apply_layout)
 	_apply_layout()
+	_show_initial_controls_overlay()
+
+func _input(event: InputEvent) -> void:
+	if not _initial_overlay_active:
+		return
+	if event is InputEventScreenTouch and event.pressed:
+		_dismiss_initial_controls_overlay()
+	elif event is InputEventMouseButton and event.pressed:
+		_dismiss_initial_controls_overlay()
+	elif event is InputEventKey and event.pressed:
+		_dismiss_initial_controls_overlay()
 
 func _process(delta: float) -> void:
 	if _mine_held:
@@ -88,8 +101,28 @@ func _create_controls_overlay() -> void:
 
 	_controls_overlay_label = Label.new()
 	_controls_overlay_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_controls_overlay_label.text = "Mobile Controls\nLeft side: movement (virtual joystick / D-pad).\nRight side: Jump, Mine, Place.\nMine = right click / tap\nPlace = left click / tap"
+	_controls_overlay_label.text = "Mobile Controls\nLeft side: virtual joystick / D-pad for movement.\nRight side: Jump, Mine, Place buttons.\nTap Bag to open/close inventory."
 	margin.add_child(_controls_overlay_label)
+
+func _show_initial_controls_overlay() -> void:
+	if _controls_overlay_panel == null:
+		return
+	_controls_overlay_panel.visible = true
+	_overlay_toggle_button.text = "Hide"
+	_initial_overlay_active = true
+	_auto_hide_initial_controls_overlay()
+
+func _auto_hide_initial_controls_overlay() -> void:
+	await get_tree().create_timer(INITIAL_OVERLAY_DURATION).timeout
+	_dismiss_initial_controls_overlay()
+
+func _dismiss_initial_controls_overlay() -> void:
+	if not _initial_overlay_active:
+		return
+	_initial_overlay_active = false
+	if _controls_overlay_panel != null:
+		_controls_overlay_panel.visible = false
+	_overlay_toggle_button.text = "Controls"
 
 func _make_button(label: String) -> Button:
 	var button := Button.new()
@@ -208,5 +241,6 @@ func _try_place_block() -> void:
 func _on_toggle_controls_overlay() -> void:
 	if _controls_overlay_panel == null:
 		return
+	_initial_overlay_active = false
 	_controls_overlay_panel.visible = not _controls_overlay_panel.visible
 	_overlay_toggle_button.text = "Hide" if _controls_overlay_panel.visible else "Controls"
