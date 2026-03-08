@@ -3,10 +3,10 @@ extends Control
 @export var player_path: NodePath = NodePath("../../Player")
 @export var blocks_path: NodePath = NodePath("../../Blocks")
 
-const ACTION_REPEAT_INTERVAL := 0.12
-const INITIAL_OVERLAY_DURATION := 4.0
-const OVERLAY_VISIBLE_TEXT := "Hide"
-const OVERLAY_HIDDEN_TEXT := "Controls"
+const ACTION_REPEAT_INTERVAL: float = 0.12
+const INITIAL_OVERLAY_DURATION: float = 4.0
+const OVERLAY_VISIBLE_TEXT: String = "Hide"
+const OVERLAY_HIDDEN_TEXT: String = "Controls"
 
 var _player: Node = null
 var _blocks: Node = null
@@ -20,14 +20,14 @@ var _overlay_toggle_button: Button
 var _controls_overlay_panel: PanelContainer
 var _controls_overlay_label: Label
 
-var _left_held := false
-var _right_held := false
-var _mine_held := false
-var _place_held := false
+var _left_held: bool = false
+var _right_held: bool = false
+var _mine_held: bool = false
+var _place_held: bool = false
 
-var _mine_repeat_timer := 0.0
-var _place_repeat_timer := 0.0
-var _initial_overlay_active := false
+var _mine_repeat_timer: float = 0.0
+var _place_repeat_timer: float = 0.0
+var _initial_overlay_active: bool = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -101,7 +101,7 @@ func _create_controls_overlay() -> void:
 	_controls_overlay_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_controls_overlay_panel)
 
-	var margin := MarginContainer.new()
+	var margin: MarginContainer = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 10)
 	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 10)
@@ -137,7 +137,7 @@ func _dismiss_initial_controls_overlay() -> void:
 	_overlay_toggle_button.text = OVERLAY_HIDDEN_TEXT
 
 func _make_button(label: String) -> Button:
-	var button := Button.new()
+	var button: Button = Button.new()
 	button.text = label
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -149,20 +149,20 @@ func _connect_world_nodes() -> void:
 	_blocks = get_node_or_null(blocks_path)
 
 func _apply_layout() -> void:
-	var viewport_size := get_viewport_rect().size
-	var short_side := min(viewport_size.x, viewport_size.y)
-	var scale_factor := clamp(short_side / 360.0, 0.9, 1.8)
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var short_side: float = minf(viewport_size.x, viewport_size.y)
+	var scale_factor: float = clampf(short_side / 360.0, 0.9, 1.8)
 
-	var move_size := clamp(64.0 * scale_factor, 52.0, 104.0)
-	var action_width := clamp(84.0 * scale_factor, 68.0, 140.0)
-	var action_height := clamp(56.0 * scale_factor, 48.0, 100.0)
-	var toggle_width := clamp(96.0 * scale_factor, 80.0, 160.0)
-	var toggle_height := clamp(44.0 * scale_factor, 38.0, 80.0)
-	var overlay_width := clamp(viewport_size.x * 0.72, 220.0, 560.0)
-	var margin := clamp(16.0 * scale_factor, 12.0, 30.0)
-	var gap := clamp(8.0 * scale_factor, 6.0, 14.0)
-	var safe_bottom := margin + clamp(96.0 * scale_factor, 88.0, 150.0)
-	var font_size := int(clamp(14.0 * scale_factor, 12.0, 24.0))
+	var move_size: float = clampf(64.0 * scale_factor, 52.0, 104.0)
+	var action_width: float = clampf(84.0 * scale_factor, 68.0, 140.0)
+	var action_height: float = clampf(56.0 * scale_factor, 48.0, 100.0)
+	var toggle_width: float = clampf(96.0 * scale_factor, 80.0, 160.0)
+	var toggle_height: float = clampf(44.0 * scale_factor, 38.0, 80.0)
+	var overlay_width: float = clampf(viewport_size.x * 0.72, 220.0, 560.0)
+	var margin: float = clampf(16.0 * scale_factor, 12.0, 30.0)
+	var gap: float = clampf(8.0 * scale_factor, 6.0, 14.0)
+	var safe_bottom: float = margin + clampf(96.0 * scale_factor, 88.0, 150.0)
+	var font_size: int = int(clampf(14.0 * scale_factor, 12.0, 24.0))
 
 	_left_button.custom_minimum_size = Vector2(move_size, move_size)
 	_right_button.custom_minimum_size = Vector2(move_size, move_size)
@@ -212,7 +212,7 @@ func _update_move_input() -> void:
 	if _player == null or not _player.has_method("set_move_input"):
 		return
 
-	var move_input := 0.0
+	var move_input: float = 0.0
 	if _left_held and not _right_held:
 		move_input = -1.0
 	elif _right_held and not _left_held:

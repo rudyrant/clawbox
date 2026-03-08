@@ -1,8 +1,8 @@
 extends Control
 
-const ITEM_DATA := preload("res://scripts/item_data.gd")
+const ITEM_DATA: Script = preload("res://scripts/item_data.gd")
 
-const HOTBAR_SIZE := 5
+const HOTBAR_SIZE: int = 5
 const EMPTY_ITEM_ID: StringName = ITEM_DATA.EMPTY_ITEM_ID
 
 @export var player_path: NodePath = NodePath("../../Player")
@@ -31,7 +31,7 @@ func _create_hotbar_buttons() -> void:
 	_hotbar_buttons.clear()
 
 	for index in range(HOTBAR_SIZE):
-		var button := Button.new()
+		var button: Button = Button.new()
 		button.text = str(index + 1)
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(_on_hotbar_slot_pressed.bind(index))
@@ -54,7 +54,7 @@ func _connect_player() -> void:
 		_refresh_inventory_list()
 
 func _on_inventory_changed(inventory: Dictionary, hotbar: Array, selected_index: int) -> void:
-	var inventory_changed := inventory != _inventory_snapshot
+	var inventory_changed: bool = inventory != _inventory_snapshot
 	_inventory_snapshot = inventory.duplicate()
 	_refresh_hotbar_buttons(hotbar, selected_index)
 	if inventory_changed or _inventory_list.get_child_count() == 0:
@@ -64,17 +64,17 @@ func _refresh_hotbar_buttons(hotbar: Array, selected_index: int) -> void:
 	for slot_index in range(HOTBAR_SIZE):
 		if slot_index >= _hotbar_buttons.size():
 			break
-		var button := _hotbar_buttons[slot_index]
+		var button: Button = _hotbar_buttons[slot_index]
 		var item_id: StringName = EMPTY_ITEM_ID
-		var count := 0
+		var count: int = 0
 		if slot_index < hotbar.size():
-			var slot_variant = hotbar[slot_index]
+			var slot_variant: Variant = hotbar[slot_index]
 			if slot_variant is Dictionary:
-				var slot_data := slot_variant as Dictionary
-				item_id = slot_data.get("item_id", EMPTY_ITEM_ID)
+				var slot_data: Dictionary = slot_variant as Dictionary
+				item_id = StringName(slot_data.get("item_id", EMPTY_ITEM_ID))
 				count = int(slot_data.get("count", 0))
 
-		var name_text := "-"
+		var name_text: String = "-"
 		if item_id != EMPTY_ITEM_ID:
 			name_text = _display_name(item_id)
 		button.text = "%d\n%s\nx%d" % [slot_index + 1, name_text, count]
@@ -90,21 +90,22 @@ func _refresh_inventory_list() -> void:
 	for child in _inventory_list.get_children():
 		child.queue_free()
 
-	var title := Label.new()
+	var title: Label = Label.new()
 	title.text = "Inventory"
 	_inventory_list.add_child(title)
 
 	if _inventory_snapshot.is_empty():
-		var empty_label := Label.new()
+		var empty_label: Label = Label.new()
 		empty_label.text = "Empty"
 		_inventory_list.add_child(empty_label)
 		return
 
-	var sorted_ids := _inventory_snapshot.keys()
+	var sorted_ids: Array = _inventory_snapshot.keys()
 	sorted_ids.sort()
 	for item_id in sorted_ids:
-		var row := Label.new()
-		row.text = "%s x%d" % [_display_name(item_id), int(_inventory_snapshot[item_id])]
+		var row: Label = Label.new()
+		var item_key: StringName = StringName(item_id)
+		row.text = "%s x%d" % [_display_name(item_key), int(_inventory_snapshot[item_key])]
 		_inventory_list.add_child(row)
 
 func _on_hotbar_slot_pressed(slot_index: int) -> void:
@@ -126,8 +127,8 @@ func _apply_layout_scaling() -> void:
 	var slot_height: float = clamp(64.0 * scale_factor, 52.0, 108.0)
 	var gap: float = clamp(6.0 * scale_factor, 4.0, 12.0)
 	var margin: float = clamp(12.0 * scale_factor, 10.0, 24.0)
-	var button_font_size := int(clamp(11.0 * scale_factor, 10.0, 18.0))
-	var panel_font_size := int(clamp(15.0 * scale_factor, 12.0, 22.0))
+	var button_font_size: int = int(clamp(11.0 * scale_factor, 10.0, 18.0))
+	var panel_font_size: int = int(clamp(15.0 * scale_factor, 12.0, 22.0))
 
 	_hotbar_row.add_theme_constant_override("separation", int(round(gap)))
 	for button in _hotbar_buttons:
@@ -158,8 +159,8 @@ func _apply_layout_scaling() -> void:
 	_inventory_toggle_button.anchor_right = 1.0
 	_inventory_toggle_button.anchor_top = 0.0
 	_inventory_toggle_button.anchor_bottom = 0.0
-	var toggle_width := clamp(86.0 * scale_factor, 72.0, 130.0)
-	var toggle_height := clamp(44.0 * scale_factor, 40.0, 72.0)
+	var toggle_width: float = clamp(86.0 * scale_factor, 72.0, 130.0)
+	var toggle_height: float = clamp(44.0 * scale_factor, 40.0, 72.0)
 	_inventory_toggle_button.offset_left = -margin - toggle_width
 	_inventory_toggle_button.offset_right = -margin
 	_inventory_toggle_button.offset_top = margin
