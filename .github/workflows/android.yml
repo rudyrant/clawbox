@@ -6,7 +6,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  lint_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download Godot
+        run: curl -L https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip -o godot.zip && unzip godot.zip
+
+      - name: Make Godot executable
+        run: chmod +x Godot_v4.2.2-stable_linux.x86_64
+
+      - name: Run Editor Headless (Lint Check)
+        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --check-only-update-resources --path ./clawbox
+
+      - name: Basic Scene Boot Test (Title Screen)
+        run: ./Godot_v4.2.2-stable_linux.x86_64 --headless --quit --main-scene ./clawbox/scenes/title_screen.tscn --path ./clawbox
+
   export:
+    needs: lint_and_test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
