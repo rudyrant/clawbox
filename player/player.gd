@@ -114,6 +114,52 @@ func get_item_count(item_id: StringName) -> int:
 		return 0
 	return int(inventory.get(item_id, 0))
 
+func get_save_data() -> Dictionary:
+	var inventory_data := {}
+	for item_id in inventory.keys():
+		inventory_data[str(item_id)] = int(inventory[item_id])
+
+	var hotbar_data: Array = []
+	for item_id in hotbar:
+		hotbar_data.append(str(item_id))
+
+	return {
+		"inventory": inventory_data,
+		"hotbar": hotbar_data,
+		"selected_hotbar_index": selected_hotbar_index
+	}
+
+func load_save_data(data: Dictionary) -> bool:
+	if not data.has("inventory"):
+		return false
+
+	var inventory_data = data.get("inventory")
+	if not (inventory_data is Dictionary):
+		return false
+
+	inventory.clear()
+	for item_key in inventory_data.keys():
+		var amount := int(inventory_data[item_key])
+		if amount <= 0:
+			continue
+		inventory[StringName(str(item_key))] = amount
+
+	hotbar.resize(HOTBAR_SIZE)
+	for index in range(HOTBAR_SIZE):
+		hotbar[index] = EMPTY_ITEM_ID
+
+	var hotbar_data = data.get("hotbar", [])
+	if hotbar_data is Array:
+		for index in range(min(HOTBAR_SIZE, hotbar_data.size())):
+			var item_id := StringName(str(hotbar_data[index]))
+			if item_id != EMPTY_ITEM_ID and inventory.has(item_id):
+				hotbar[index] = item_id
+
+	selected_hotbar_index = clampi(int(data.get("selected_hotbar_index", 0)), 0, HOTBAR_SIZE - 1)
+	selected_hotbar_changed.emit(selected_hotbar_index)
+	_emit_inventory_changed()
+	return true
+
 func _assign_hotbar_slot_if_needed(item_id: StringName) -> void:
 	if hotbar.has(item_id):
 		return

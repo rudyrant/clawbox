@@ -12,6 +12,9 @@ const TILE_GRASS := Vector2i(0, 0)
 const TILE_DIRT := Vector2i(1, 0)
 const TILE_STONE := Vector2i(2, 0)
 const DROPPED_ITEM_SCENE := preload("res://items/dropped_item.tscn")
+
+signal world_changed
+
 @onready var _player: CharacterBody2D = get_node_or_null("../Player")
 @onready var _player_collision_shape: CollisionShape2D = _player.get_node_or_null("CollisionShape2D") if _player != null else null
 
@@ -29,6 +32,51 @@ func _unhandled_input(event: InputEvent) -> void:
 			_break_block_from_screen_position(event.position)
 	elif event is InputEventScreenTouch and event.pressed:
 		_place_block_from_screen_position(event.position)
+
+func generate_default_world() -> void:
+	_build_level()
+
+func get_world_state() -> Dictionary:
+	var cells: Array = []
+	for cell in get_used_cells(0):
+		var source_id := get_cell_source_id(0, cell)
+		if source_id == -1:
+			continue
+		var atlas_coords := get_cell_atlas_coords(0, cell)
+		cells.append({
+			"x": cell.x,
+			"y": cell.y,
+			"source_id": source_id,
+			"atlas_x": atlas_coords.x,
+			"atlas_y": atlas_coords.y
+		})
+	return {
+		"cells": cells
+	}
+
+func load_world_state(data: Dictionary) -> bool:
+	if not data.has("cells"):
+		return false
+	var cells_variant = data.get("cells")
+	if not (cells_variant is Array):
+		return false
+
+	clear()
+	for cell_data in cells_variant:
+		if not (cell_data is Dictionary):
+			continue
+
+		var x := int(cell_data.get("x", 0))
+		var y := int(cell_data.get("y", 0))
+		var source_id := int(cell_data.get("source_id", SOURCE_ID))
+		var atlas_x := int(cell_data.get("atlas_x", -1))
+		var atlas_y := int(cell_data.get("atlas_y", -1))
+		if atlas_x < 0 or atlas_y < 0:
+			continue
+
+		set_cell(0, Vector2i(x, y), source_id, Vector2i(atlas_x, atlas_y))
+
+	return true
 
 func _build_tileset() -> TileSet:
 	var generated_tileset := TileSet.new()
@@ -95,6 +143,7 @@ func _break_block_from_screen_position(screen_position: Vector2) -> void:
 
 	erase_cell(0, cell)
 	_spawn_dropped_item(cell, _item_id_from_atlas_coords(atlas_coords))
+	world_changed.emit()
 
 func _place_block_from_screen_position(screen_position: Vector2) -> void:
 	var world_position := get_viewport().get_canvas_transform().affine_inverse() * screen_position
@@ -115,6 +164,7 @@ func _place_block_from_screen_position(screen_position: Vector2) -> void:
 		return
 
 	set_cell(0, cell, SOURCE_ID, atlas_coords)
+	world_changed.emit()
 
 func _spawn_dropped_item(cell: Vector2i, item_id: StringName) -> void:
 	if item_id == &"":
