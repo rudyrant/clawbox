@@ -31,7 +31,7 @@ jobs:
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
 
       - name: Configure Godot Editor Settings
-          # We write to the specific version-4 settings file
+        # We write to the specific version-4 settings file
         run: |
           mkdir -p ~/.config/godot
           cat > ~/.config/godot/editor_settings-4.tres << EOF
