@@ -33,7 +33,7 @@ jobs:
 
       - name: Configure Godot Editor Settings
         run: |
-          mkdir -p ~/.config/godot
+          mkdir -p ~/.config/godot .godot
           cat > ~/.config/godot/editor_settings-4.tres << EOF
           [gd_resource type="EditorSettings" format=3]
 
@@ -43,6 +43,12 @@ jobs:
           export/android/debug_keystore_pass = "android"
           export/android/android_sdk_path = "/usr/local/lib/android/sdk"
           export/android/java_sdk_path = "${JAVA_HOME}"
+          EOF
+          cat > .godot/export_credentials.cfg << EOF
+          [preset.0]
+          export/android/debug_keystore = "/home/runner/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
           EOF
 
       - name: Download Godot & Templates
