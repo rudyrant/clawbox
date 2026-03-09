@@ -58,9 +58,55 @@ jobs:
 
       - name: Godot Android export
         run: |
+          set +e
           mkdir -p build
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --export-debug "Android" build/clawbox.apk
+
+          echo "--- export_presets.cfg (effective in CI) ---"
+          sed -n '1,240p' export_presets.cfg
+
+          echo "--- Godot import ---"
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import 2>&1 | tee godot-import.log
+          import_status=${PIPESTATUS[0]}
+          echo "Godot import exit code: ${import_status}"
+
+          echo "--- Godot Android export ---"
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk 2>&1 | tee godot-export.log
+          export_status=${PIPESTATUS[0]}
+          echo "Godot export exit code: ${export_status}"
+
+          echo "--- First validation block around Android export failure ---"
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('godot-export.log')
+          if not p.exists():
+              print('godot-export.log not found')
+              raise SystemExit(0)
+          lines = p.read_text(errors='replace').splitlines()
+          idx = None
+          for i, line in enumerate(lines):
+              if 'Cannot export project with preset "Android" due to configuration errors:' in line:
+                  idx = i
+                  break
+          if idx is None:
+              print('No generic Android export validation banner found; tailing full export log instead.')
+              for line in lines[-200:]:
+                  print(line)
+          else:
+              start = max(0, idx - 80)
+              end = min(len(lines), idx + 40)
+              for line in lines[start:end]:
+                  print(line)
+          PY
+
+          if [ "$import_status" -ne 0 ]; then
+            echo "Failing because Godot import failed"
+            exit "$import_status"
+          fi
+
+          if [ "$export_status" -ne 0 ]; then
+            echo "Failing because Godot export failed after diagnostics were captured"
+            exit "$export_status"
+          fi
 
       - name: Verify APK exists
         run: test -s build/clawbox.apk
