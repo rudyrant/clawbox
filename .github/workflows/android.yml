@@ -21,8 +21,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android Build Tools
+      - name: Install Android SDK packages
         run: |
+          yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33"
 
       - name: Generate debug keystore
@@ -31,7 +32,6 @@ jobs:
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
 
       - name: Configure Godot Editor Settings
-        # We write to the specific version-4 settings file
         run: |
           mkdir -p ~/.config/godot
           cat > ~/.config/godot/editor_settings-4.tres << EOF
@@ -48,24 +48,19 @@ jobs:
       - name: Download Godot & Templates
         run: |
           curl -L "https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip" -o godot.zip
-          unzip godot.zip
+          unzip -q godot.zip
           chmod +x Godot_v4.2.2-stable_linux.x86_64
-          
+
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
           curl -L "https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz" -o templates.tpz
-          unzip templates.tpz -d temp_templates
+          unzip -q templates.tpz -d temp_templates
           mv temp_templates/templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
-
-      - name: Install Android build template into project
-        run: |
-          mkdir -p android/build
-          unzip -o ~/.local/share/godot/export_templates/4.2.2.stable/android_source.zip -d android/build
 
       - name: Godot Android export
         run: |
           mkdir -p build
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import --verbose
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --export-debug "Android" build/clawbox.apk
 
       - name: Verify APK exists
         run: test -s build/clawbox.apk
