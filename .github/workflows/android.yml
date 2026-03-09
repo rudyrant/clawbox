@@ -59,7 +59,11 @@ jobs:
       - name: Patch project.godot for Android SDK path
         run: |
           # Add SDK path to project.godot to ensure it's picked up during headless export
-          echo 'export/android/android_sdk_path="/usr/local/lib/android/sdk"' >> project.godot
+          if ! grep -q "\[export/android\]" project.godot; then
+            echo "" >> project.godot
+            echo "[export/android]" >> project.godot
+          fi
+          echo 'android_sdk_path="/usr/local/lib/android/sdk"' >> project.godot
 
       - name: Godot Android export
         run: |
