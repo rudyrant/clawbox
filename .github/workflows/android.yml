@@ -73,7 +73,15 @@ jobs:
           # List templates to verify they are in the right place
           ls -R ~/.local/share/godot/
           # Export to the APK path specified in preset (or override it)
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk || true
+          
+          if [ ! -f build/clawbox.apk ]; then
+            echo "Export failed. Retrying with explicit template path check..."
+            # Try to force template discovery by creating the default user path if it doesn't exist
+            mkdir -p ~/.local/share/godot/templates/4.2.2.stable
+            cp -r ~/.local/share/godot/export_templates/4.2.2.stable/* ~/.local/share/godot/templates/4.2.2.stable/
+            ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
+          fi
 
       - name: Verify APK exists
         run: test -s build/clawbox.apk
