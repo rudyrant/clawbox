@@ -56,32 +56,16 @@ jobs:
           unzip templates.tpz -d temp_templates
           mv temp_templates/templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
 
-      - name: Patch project.godot for Android SDK path
+      - name: Install Android build template into project
         run: |
-          # Add SDK path to project.godot to ensure it's picked up during headless export
-          if ! grep -q "\[export/android\]" project.godot; then
-            echo "" >> project.godot
-            echo "[export/android]" >> project.godot
-          fi
-          echo 'android_sdk_path="/usr/local/lib/android/sdk"' >> project.godot
+          mkdir -p android/build
+          unzip -o ~/.local/share/godot/export_templates/4.2.2.stable/android_source.zip -d android/build
 
       - name: Godot Android export
         run: |
           mkdir -p build
-          # First ensure everything is imported correctly
           ./Godot_v4.2.2-stable_linux.x86_64 --headless --path . --import --verbose
-          # List templates to verify they are in the right place
-          ls -R ~/.local/share/godot/
-          # Export to the APK path specified in preset (or override it)
-          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk || true
-          
-          if [ ! -f build/clawbox.apk ]; then
-            echo "Export failed. Retrying with explicit template path check..."
-            # Try to force template discovery by creating the default user path if it doesn't exist
-            mkdir -p ~/.local/share/godot/templates/4.2.2.stable
-            cp -r ~/.local/share/godot/export_templates/4.2.2.stable/* ~/.local/share/godot/templates/4.2.2.stable/
-            ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
-          fi
+          ./Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --path . --export-debug "Android" build/clawbox.apk
 
       - name: Verify APK exists
         run: test -s build/clawbox.apk
