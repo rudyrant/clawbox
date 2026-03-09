@@ -11,7 +11,4 @@ run/main_scene="res://scenes/title_screen.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
 
-[export/android]
-
-android_sdk_path="/usr/local/lib/android/sdk"
 
